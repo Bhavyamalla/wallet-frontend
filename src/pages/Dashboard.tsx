@@ -1,42 +1,58 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import {
+  ShieldCheck,
+  ArrowRightLeft,
+  History,
+  LogOut,
+  User,
+  AlertTriangle,
+  IndianRupee,
+} from 'lucide-react';
+
 import api from '../api/axios';
 import AlertModal from '../components/AlertModal';
-import { ShieldCheck, ArrowRightLeft, History, LogOut, User } from 'lucide-react';
 
 interface Transaction {
   id: number;
   senderEmail: string;
-  receiverAccountNumber: string; // Updated from receiverEmail
+  receiverAccountNumber: string;
   amount: number;
   status: string;
 }
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  
-  // App context states
+
   const [balance, setBalance] = useState<number | null>(null);
   const [balanceRequested, setBalanceRequested] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [historyRecords, setHistoryRecords] = useState<Transaction[]>([]);
 
-  // Transfer Form States - completely detached from email requirements
-  const [transferData, setTransferData] = useState({ receiverAccountNumber: '', amount: '', otp: '' });
+  const [transferData, setTransferData] = useState({
+    receiverAccountNumber: '',
+    amount: '',
+    otp: '',
+  });
 
-  // Modal Dialog Notification configurations
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalConfig, setModalConfig] = useState({ title: '', message: '', isError: false });
+  const [modalConfig, setModalConfig] = useState({
+    title: '',
+    message: '',
+    isError: false,
+  });
 
-  // SAFE GUARD: Extract active user metadata strings securely from active local storage session profiles
-  const activeUserJson = localStorage.getItem('user') || sessionStorage.getItem('user');
+  const activeUserJson =
+    localStorage.getItem('user') || sessionStorage.getItem('user');
+
   const userObj = activeUserJson ? JSON.parse(activeUserJson) : null;
+
   const userEmail = userObj?.email || '';
-  const userName = userObj?.name || 'Security Operator';
+  const userName = userObj?.name || 'User';
   const userRole = userObj?.role || 'ROLE_USER';
 
-  // Redirect instantly back to login gateways if session parameters fail validation checks
   useEffect(() => {
     if (!userEmail) {
       navigate('/login');
@@ -47,149 +63,424 @@ const Dashboard = () => {
 
   const loadAuditLedger = async () => {
     try {
-      const response = await api.get(`/api/auth/ledger?email=${userEmail}&role=${userRole}`);
+      const response = await api.get(
+        `/api/auth/ledger?email=${userEmail}&role=${userRole}`
+      );
       setHistoryRecords(response.data);
     } catch (err: any) {
-      console.error("Ledger failure:", err.message);
+      console.error(err.message);
     }
   };
 
   const triggerSecurityToken = async () => {
-    if (!userEmail) {
-      setModalConfig({ title: 'Session Expired', message: 'Please re-authenticate your profile.', isError: true });
-      setModalOpen(true);
-      return;
-    }
     try {
-      await api.post('/api/auth/generate-otp', { email: userEmail });
+      await api.post('/api/auth/generate-otp', {
+        email: userEmail,
+      });
+
       setOtpSent(true);
       setBalanceRequested(true);
-      setModalConfig({ title: 'Token Dispatched', message: 'Verification security token successfully routed to your mail.', isError: false });
+
+      setModalConfig({
+        title: 'OTP Sent',
+        message: 'Verification code sent to your email.',
+        isError: false,
+      });
+
       setModalOpen(true);
     } catch (error: any) {
-      setModalConfig({ title: 'Authentication Request Refused', message: error.response?.data || 'Failed to emit OTP.', isError: true });
+      setModalConfig({
+        title: 'Failed',
+        message: error.response?.data || 'Unable to send OTP.',
+        isError: true,
+      });
+
       setModalOpen(true);
     }
   };
 
-  const checkBalanceVerification = async (e: React.FormEvent) => {
+  const checkBalanceVerification = async (
+    e: React.FormEvent
+  ) => {
     e.preventDefault();
+
     try {
-      const response = await api.post('/api/auth/verify-balance-otp', { email: userEmail, otp: otpCode });
+      const response = await api.post(
+        '/api/auth/verify-balance-otp',
+        {
+          email: userEmail,
+          otp: otpCode,
+        }
+      );
+
       setBalance(response.data.balance);
       setOtpSent(false);
       setBalanceRequested(false);
     } catch (error: any) {
-      setModalConfig({ title: 'Access Unauthorized', message: error.response?.data || 'Invalid security pin matching verification.', isError: true });
+      setModalConfig({
+        title: 'Verification Failed',
+        message: error.response?.data || 'Invalid OTP.',
+        isError: true,
+      });
+
       setModalOpen(true);
     }
   };
 
-  const handleAssetTransfer = async (e: React.FormEvent) => {
+  const handleAssetTransfer = async (
+    e: React.FormEvent
+  ) => {
     e.preventDefault();
+
     try {
-      // Outbound DTO parameters update to transmit receiverAccountNumber property
       const response = await api.post('/api/auth/transfer', {
         senderEmail: userEmail,
-        receiverAccountNumber: transferData.receiverAccountNumber,
+        receiverAccountNumber:
+          transferData.receiverAccountNumber,
         amount: parseFloat(transferData.amount),
-        otp: transferData.otp
+        otp: transferData.otp,
       });
-      setModalConfig({ title: 'Transfer Complete', message: response.data.message || 'Cleared successfully.', isError: false });
+
+      setModalConfig({
+        title: 'Transfer Successful',
+        message: response.data.message || 'Transfer completed.',
+        isError: false,
+      });
+
       setModalOpen(true);
-      setTransferData({ receiverAccountNumber: '', amount: '', otp: '' });
+
+      setTransferData({
+        receiverAccountNumber: '',
+        amount: '',
+        otp: '',
+      });
+
       loadAuditLedger();
     } catch (error: any) {
-      setModalConfig({ title: 'Transaction Terminated', message: error.response?.data || 'Execution failed.', isError: true });
+      setModalConfig({
+        title: 'Transfer Failed',
+        message: error.response?.data || 'Transaction failed.',
+        isError: true,
+      });
+
       setModalOpen(true);
     }
   };
 
   return (
-    <div style={{ backgroundColor: '#0f172a', minHeight: '100vh', padding: '30px', color: 'white', fontFamily: 'Segoe UI, sans-serif' }}>
-      <AlertModal isOpen={modalOpen} title={modalConfig.title} message={modalConfig.message} isError={modalConfig.isError} onClose={() => setModalOpen(false)} />
+    <div className="min-h-screen bg-[#020617] text-white overflow-hidden relative px-6 py-8">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,#1e3a8a20,transparent_30%),radial-gradient(circle_at_bottom_left,#06b6d420,transparent_30%)]" />
 
-      {/* HEADER SECTION ROW */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1e293b', paddingBottom: '20px', marginBottom: '30px' }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: '24px' }}>Welcome Back, {userName}</h2>
-          <p style={{ margin: '5px 0 0 0', color: '#64748b', fontSize: '14px' }}>E-mail Address: {userEmail}</p>
-        </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button onClick={() => navigate('/profile')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#1e293b', color: 'white', border: '1px solid #334155', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }} onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#334155')} onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#1e293b')}>
-            <User size={16} style={{ color: '#38bdf8' }} /> Profile Settings
-          </button>
-          <button onClick={() => navigate('/logout')} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }} onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#dc2626')} onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#ef4444')}>
-            <LogOut size={16} /> Close Terminal
-          </button>
-        </div>
-      </div>
+      <AlertModal
+        isOpen={modalOpen}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        isError={modalConfig.isError}
+        onClose={() => setModalOpen(false)}
+      />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
-        {/* LEFT COLUMN COMPONENTS */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-          
-          {/* BALANCE DISPLAY CARD BOX */}
-          <div style={{ backgroundColor: '#1e293b', padding: '25px', borderRadius: '12px', border: '1px solid #334155' }}>
-            <h3 style={{ marginTop: 0, color: '#94a3b8', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}><ShieldCheck className="text-blue-500" /> Check Balance</h3>
-            {balance !== null ? (
-              <h1 style={{ fontSize: '36px', fontWeight: 'bold', color: '#10b981', margin: '15px 0 0 0' }}>₹ {balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h1>
-            ) : !balanceRequested ? (
-              <button onClick={triggerSecurityToken} style={{ marginTop: '15px', padding: '12px 20px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Reveal</button>
-            ) : (
-              <form onSubmit={checkBalanceVerification} style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
-                <input type="password" required placeholder="Enter 4-Digit Security PIN" maxLength={4} value={otpCode} onChange={(e) => setOtpCode(e.target.value)} style={{ padding: '10px', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '6px', color: 'white', flexGrow: 1 }} />
-                <button type="submit" style={{ padding: '10px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Verify Access</button>
-              </form>
-            )}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="relative z-10 max-w-7xl mx-auto"
+      >
+        {/* HEADER */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
+          <div>
+            <h1 className="text-4xl font-bold tracking-tight">
+              Welcome back, {userName}
+            </h1>
+            <p className="text-slate-400 mt-2">
+              Secure Wallet Dashboard
+            </p>
           </div>
 
-          {/* ASSET TRANSFER LEDGER MIGRATION INTERFACE */}
-          <div style={{ backgroundColor: '#1e293b', padding: '25px', borderRadius: '12px', border: '1px solid #334155' }}>
-            <h3 style={{ marginTop: 0, color: '#94a3b8', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}><ArrowRightLeft className="text-emerald-500" /> Transaction Column</h3>
-            <form onSubmit={handleAssetTransfer} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '15px' }}>
-              <input 
-                type="text" 
-                placeholder="Recipient Bank Account Number" 
-                required 
-                value={transferData.receiverAccountNumber} 
-                onChange={(e) => setTransferData({ ...transferData, receiverAccountNumber: e.target.value })} 
-                style={{ padding: '12px', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '6px', color: 'white' }} 
-              />
-              <input type="number" placeholder="Transfer Amount (INR)" required value={transferData.amount} onChange={(e) => setTransferData({ ...transferData, amount: e.target.value })} style={{ padding: '12px', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '6px', color: 'white' }} />
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <input type="password" placeholder="Pin Validation Code" required maxLength={4} value={transferData.otp} onChange={(e) => setTransferData({ ...transferData, otp: e.target.value })} style={{ padding: '12px', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '6px', color: 'white', flexGrow: 1 }} />
-                <button type="button" onClick={() => api.post('/api/auth/generate-otp', { email: userEmail })} style={{ padding: '12px', backgroundColor: '#475569', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Dispatch Token</button>
+          <div className="flex gap-4">
+            <button
+              onClick={() => navigate('/profile')}
+              className="backdrop-blur-xl bg-white/10 border border-white/10 hover:bg-white/20 transition-all duration-300 px-5 py-3 rounded-2xl flex items-center gap-2"
+            >
+              <User size={18} />
+              Profile
+            </button>
+
+            <button
+              onClick={() => navigate('/logout')}
+              className="bg-red-500/20 border border-red-500/20 hover:bg-red-500/30 transition-all duration-300 px-5 py-3 rounded-2xl flex items-center gap-2 text-red-300"
+            >
+              <LogOut size={18} />
+              Logout
+            </button>
+          </div>
+        </div>
+
+        {/* TOP CARDS */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <motion.div
+            whileHover={{ y: -5 }}
+            className="backdrop-blur-2xl bg-white/10 border border-white/10 rounded-3xl p-6 shadow-2xl"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-slate-400 text-sm">
+                  Wallet Balance
+                </p>
+                <h2 className="text-3xl font-bold mt-2">
+                  {balance !== null
+                    ? `₹ ${balance.toLocaleString('en-IN')}`
+                    : 'Hidden'}
+                </h2>
               </div>
-              <button type="submit" style={{ padding: '14px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }}>Transfer Amount</button>
-            </form>
-          </div>
+
+              <div className="bg-emerald-500/20 p-4 rounded-2xl">
+                <IndianRupee className="text-emerald-400" />
+              </div>
+            </div>
+
+            {!balanceRequested && balance === null ? (
+              <button
+                onClick={triggerSecurityToken}
+                className="w-full mt-4 bg-blue-500 hover:bg-blue-600 transition-all py-3 rounded-2xl font-semibold"
+              >
+                Reveal Balance
+              </button>
+            ) : balanceRequested ? (
+              <form
+                onSubmit={checkBalanceVerification}
+                className="space-y-3 mt-4"
+              >
+                <input
+                  type="password"
+                  placeholder="Enter OTP"
+                  maxLength={4}
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value)}
+                  className="w-full bg-black/20 border border-white/10 rounded-2xl px-4 py-3 outline-none focus:border-blue-500"
+                />
+
+                <button
+                  type="submit"
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 transition-all py-3 rounded-2xl font-semibold"
+                >
+                  Verify OTP
+                </button>
+              </form>
+            ) : null}
+          </motion.div>
+
+          <motion.div
+            whileHover={{ y: -5 }}
+            className="backdrop-blur-2xl bg-white/10 border border-white/10 rounded-3xl p-6 shadow-2xl"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-slate-400 text-sm">
+                  Fraud Monitoring
+                </p>
+                <h2 className="text-2xl font-bold mt-2">
+                  AI Active
+                </h2>
+              </div>
+
+              <div className="bg-orange-500/20 p-4 rounded-2xl">
+                <AlertTriangle className="text-orange-400" />
+              </div>
+            </div>
+
+            <p className="text-slate-300 text-sm leading-relaxed mt-4">
+              Real-time transaction pattern analysis enabled.
+            </p>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ y: -5 }}
+            className="backdrop-blur-2xl bg-white/10 border border-white/10 rounded-3xl p-6 shadow-2xl"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-slate-400 text-sm">
+                  Account Security
+                </p>
+                <h2 className="text-2xl font-bold mt-2">
+                  Protected
+                </h2>
+              </div>
+
+              <div className="bg-cyan-500/20 p-4 rounded-2xl">
+                <ShieldCheck className="text-cyan-400" />
+              </div>
+            </div>
+
+            <p className="text-slate-300 text-sm leading-relaxed mt-4">
+              OTP verification and encrypted access enabled.
+            </p>
+          </motion.div>
         </div>
 
-        {/* RIGHT COLUMN components (AUDIT TRAILS GRAPH GRID) */}
-        <div style={{ backgroundColor: '#1e293b', padding: '25px', borderRadius: '12px', border: '1px solid #334155', display: 'flex', flexDirection: 'column' }}>
-          <h3 style={{ marginTop: 0, color: '#94a3b8', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #334155', paddingBottom: '15px' }}><History className="text-purple-500" /> Transaction History</h3>
-          <div style={{ overflowY: 'auto', flexGrow: 1, maxHeight: '420px', marginTop: '15px' }}>
-            {historyRecords.length === 0 ? (
-              <p style={{ color: '#64748b', textAlign: 'center', marginTop: '40px' }}>Zero historical tracking data found within this session.</p>
-            ) : (
-              historyRecords.map((tx) => (
-                <div key={tx.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', borderBottom: '1px solid #334155', fontSize: '14px' }}>
-                  <div>
-                    <p style={{ margin: 0, fontWeight: 'bold' }}>
-                      {tx.senderEmail === userEmail 
-                        ? `To: ${tx.receiverAccountNumber || 'External Node'}` 
-                        : `From: ${tx.senderEmail}`}
-                    </p>
-                    <span style={{ fontSize: '11px', color: tx.status === 'SUCCESS' ? '#10b981' : '#ef4444', backgroundColor: tx.status === 'SUCCESS' ? '#064e3b' : '#4c1d1d', padding: '2px 6px', borderRadius: '4px', display: 'inline-block', marginTop: '4px' }}>{tx.status}</span>
-                  </div>
-                  <span style={{ fontWeight: 'bold', color: tx.senderEmail === userEmail ? '#ef4444' : '#10b981', fontSize: '16px' }}>{tx.senderEmail === userEmail ? '-' : '+'} ₹{tx.amount}</span>
+        {/* MAIN GRID */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-8">
+          {/* TRANSFER CARD */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5 }}
+            className="backdrop-blur-2xl bg-white/10 border border-white/10 rounded-3xl p-8 shadow-2xl"
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-emerald-500/20 p-3 rounded-2xl">
+                <ArrowRightLeft className="text-emerald-400" />
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-bold">
+                  Send Money
+                </h2>
+                <p className="text-slate-400 text-sm">
+                  Fast and secure wallet transfer
+                </p>
+              </div>
+            </div>
+
+            <form
+              onSubmit={handleAssetTransfer}
+              className="space-y-5"
+            >
+              <input
+                type="text"
+                placeholder="Receiver Account Number"
+                value={transferData.receiverAccountNumber}
+                onChange={(e) =>
+                  setTransferData({
+                    ...transferData,
+                    receiverAccountNumber: e.target.value,
+                  })
+                }
+                className="w-full bg-black/20 border border-white/10 rounded-2xl px-5 py-4 outline-none focus:border-blue-500"
+                required
+              />
+
+              <input
+                type="number"
+                placeholder="Transfer Amount"
+                value={transferData.amount}
+                onChange={(e) =>
+                  setTransferData({
+                    ...transferData,
+                    amount: e.target.value,
+                  })
+                }
+                className="w-full bg-black/20 border border-white/10 rounded-2xl px-5 py-4 outline-none focus:border-blue-500"
+                required
+              />
+
+              <div className="flex gap-3">
+                <input
+                  type="password"
+                  placeholder="OTP"
+                  maxLength={4}
+                  value={transferData.otp}
+                  onChange={(e) =>
+                    setTransferData({
+                      ...transferData,
+                      otp: e.target.value,
+                    })
+                  }
+                  className="flex-1 bg-black/20 border border-white/10 rounded-2xl px-5 py-4 outline-none focus:border-blue-500"
+                  required
+                />
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    api.post('/api/auth/generate-otp', {
+                      email: userEmail,
+                    })
+                  }
+                  className="bg-slate-700 hover:bg-slate-600 transition-all px-5 rounded-2xl"
+                >
+                  Send OTP
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 hover:scale-[1.01] transition-all py-4 rounded-2xl text-lg font-semibold shadow-lg"
+              >
+                Transfer Funds
+              </button>
+            </form>
+          </motion.div>
+
+          {/* HISTORY */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5 }}
+            className="backdrop-blur-2xl bg-white/10 border border-white/10 rounded-3xl p-8 shadow-2xl"
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-purple-500/20 p-3 rounded-2xl">
+                <History className="text-purple-400" />
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-bold">
+                  Transaction History
+                </h2>
+                <p className="text-slate-400 text-sm">
+                  Recent wallet activity
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4 max-h-[520px] overflow-y-auto pr-2">
+              {historyRecords.length === 0 ? (
+                <div className="text-center py-16 text-slate-400">
+                  No transactions available.
                 </div>
-              ))
-            )}
-          </div>
+              ) : (
+                historyRecords.map((tx) => (
+                  <motion.div
+                    whileHover={{ scale: 1.01 }}
+                    key={tx.id}
+                    className="bg-black/20 border border-white/5 rounded-2xl p-5 flex items-center justify-between"
+                  >
+                    <div>
+                      <p className="font-semibold text-white">
+                        {tx.senderEmail === userEmail
+                          ? `To: ${tx.receiverAccountNumber}`
+                          : `From: ${tx.senderEmail}`}
+                      </p>
+
+                      <div
+                        className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold ${
+                          tx.status === 'SUCCESS'
+                            ? 'bg-emerald-500/20 text-emerald-400'
+                            : 'bg-red-500/20 text-red-400'
+                        }`}
+                      >
+                        {tx.status}
+                      </div>
+                    </div>
+
+                    <div
+                      className={`text-xl font-bold ${
+                        tx.senderEmail === userEmail
+                          ? 'text-red-400'
+                          : 'text-emerald-400'
+                      }`}
+                    >
+                      {tx.senderEmail === userEmail ? '-' : '+'}₹
+                      {tx.amount}
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

@@ -1,60 +1,51 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { ShieldCheck, LogIn, Eye, EyeOff } from 'lucide-react'; // Added Eye and EyeOff icons
 import AlertModal from '../components/AlertModal';
 
 const Login = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [rememberMe, setRememberMe] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // New state variable for password visibility
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  // --- MODAL DIALOG CONTROLS ---
   const [modalOpen, setModalOpen] = useState(false);
   const [modalConfig, setModalConfig] = useState({ title: '', message: '', isError: false });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-
     try {
       const payload = {
         email: credentials.email,
         password: credentials.password,
-        role: isAdmin ? 'ROLE_ADMIN' : 'ROLE_USER'
+        role: isAdmin ? 'ROLE_ADMIN' : 'ROLE_USER',
       };
-
       const response = await api.post('/api/auth/login', payload);
 
-      // Standardize storage format to sync with Dashboard's structural profile
       const userPayload = {
         email: response.data.email,
         role: response.data.role,
-        name: response.data.name
+        name: response.data.name,
       };
 
-      // Clean up previous context profiles
       localStorage.removeItem('user');
       sessionStorage.removeItem('user');
 
-      // Save as stringified JSON in the chosen storage context
       const storage = rememberMe ? localStorage : sessionStorage;
       storage.setItem('user', JSON.stringify(userPayload));
 
-      // Trigger SUCCESS modal
       setModalConfig({
-        title: 'Authentication Success!',
-        message: `Welcome back, ${response.data.name}! Click Acknowledge to access your dashboard.`,
-        isError: false
+        title: 'Welcome Back!',
+        message: `Authenticated as ${response.data.name}. Click Acknowledge to enter your dashboard.`,
+        isError: false,
       });
       setModalOpen(true);
-
     } catch (error: any) {
       setModalConfig({
         title: 'Authentication Failed',
-        message: error.response?.data || 'Invalid email or password mismatch error.',
-        isError: true
+        message: error.response?.data || 'Invalid email or password.',
+        isError: true,
       });
       setModalOpen(true);
     }
@@ -62,18 +53,71 @@ const Login = () => {
 
   const handleModalClose = () => {
     setModalOpen(false);
-    
-    // Only proceed to Dashboard if the authentication succeeded
-    if (!modalConfig.isError) {
-      navigate('/dashboard');
-    }
+    if (!modalConfig.isError) navigate('/dashboard');
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '13px 16px',
+    borderRadius: '10px',
+    border: '1px solid rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    color: 'white',
+    fontSize: '14px',
+    boxSizing: 'border-box',
+    outline: 'none',
+    transition: 'border-color 0.2s',
+    fontFamily: "'Segoe UI', sans-serif",
+  };
+
+  const labelStyle: React.CSSProperties = {
+    color: '#64748b',
+    fontSize: '12px',
+    fontWeight: '600',
+    letterSpacing: '0.8px',
+    textTransform: 'uppercase',
+    display: 'block',
+    marginBottom: '8px',
   };
 
   return (
-    <div style={{ backgroundColor: '#0f172a', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Segoe UI, sans-serif' }}>
-      
-      {/* CENTRED LOCK DIALOG SCREEN */}
-      <AlertModal 
+    <div style={{
+      backgroundColor: '#020817',
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: "'Segoe UI', sans-serif",
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+
+      {/* Background grid */}
+      <div style={{
+        position: 'fixed', inset: 0,
+        backgroundImage: `
+          linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px)
+        `,
+        backgroundSize: '60px 60px',
+        pointerEvents: 'none',
+      }} />
+
+      {/* Ambient glow */}
+      <div style={{
+        position: 'fixed', top: '-20%', left: '-20%',
+        width: '600px', height: '600px',
+        background: 'radial-gradient(circle, rgba(59,130,246,0.07) 0%, transparent 70%)',
+        borderRadius: '50%', pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'fixed', bottom: '-20%', right: '-20%',
+        width: '500px', height: '500px',
+        background: 'radial-gradient(circle, rgba(6,182,212,0.06) 0%, transparent 70%)',
+        borderRadius: '50%', pointerEvents: 'none',
+      }} />
+
+      <AlertModal
         isOpen={modalOpen}
         title={modalConfig.title}
         message={modalConfig.message}
@@ -81,98 +125,211 @@ const Login = () => {
         onClose={handleModalClose}
       />
 
-      <div style={{ backgroundColor: '#1e293b', padding: '40px', borderRadius: '12px', width: '380px', border: '1px solid #334155', opacity: modalOpen ? 0.3 : 1, transition: 'opacity 0.2s ease' }}>
+      <div style={{
+        position: 'relative', zIndex: 1,
+        width: '420px',
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: '20px',
+        padding: '40px',
+        backdropFilter: 'blur(20px)',
+        boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
+        opacity: modalOpen ? 0.2 : 1,
+        transition: 'opacity 0.2s ease',
+      }}>
 
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '25px' }}>
-          <ShieldCheck size={32} style={{ color: '#3b82f6' }} />
-          <h2 style={{ color: 'white', margin: 0, fontSize: '24px', fontWeight: 'bold' }}>BioShield Portal</h2>
+        {/* Logo + Title */}
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{
+            width: '56px', height: '56px', borderRadius: '16px',
+            background: 'linear-gradient(135deg, rgba(59,130,246,0.2), rgba(6,182,212,0.2))',
+            border: '1px solid rgba(59,130,246,0.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 16px',
+            boxShadow: '0 0 24px rgba(59,130,246,0.15)',
+          }}>
+            <svg width="28" height="28" viewBox="0 0 30 30" fill="none">
+              <path d="M15 2L3 8v8c0 6 4.8 11.6 12 13 7.2-1.4 12-7 12-13V8L15 2z"
+                fill="url(#lg)" />
+              <path d="M10 15l4 4 7-7" stroke="white" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round" />
+              <defs>
+                <linearGradient id="lg" x1="3" y1="2" x2="27" y2="28">
+                  <stop stopColor="#3b82f6" />
+                  <stop offset="1" stopColor="#06b6d4" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <h2 style={{ color: 'white', margin: '0 0 6px', fontSize: '22px', fontWeight: '800', letterSpacing: '-0.5px' }}>
+            BioShield Portal
+          </h2>
+          <p style={{ color: '#475569', fontSize: '13px', margin: 0 }}>
+            Secure access to your wallet
+          </p>
         </div>
 
-        {/* User / Admin toggle */}
-        <div style={{ display: 'flex', backgroundColor: '#0f172a', padding: '4px', borderRadius: '8px', marginBottom: '25px' }}>
-          <button type="button" onClick={() => setIsAdmin(false)} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: !isAdmin ? '#3b82f6' : 'transparent', color: !isAdmin ? 'white' : '#64748b' }}>
+        {/* User / Admin Toggle */}
+        <div style={{
+          display: 'flex',
+          backgroundColor: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          padding: '4px', borderRadius: '12px',
+          marginBottom: '28px',
+        }}>
+          <button type="button" onClick={() => setIsAdmin(false)} style={{
+            flex: 1, padding: '10px', border: 'none', borderRadius: '9px',
+            fontWeight: '700', fontSize: '13px', cursor: 'pointer',
+            transition: 'all 0.2s',
+            backgroundColor: !isAdmin ? '#3b82f6' : 'transparent',
+            color: !isAdmin ? 'white' : '#475569',
+            boxShadow: !isAdmin ? '0 0 16px rgba(59,130,246,0.4)' : 'none',
+          }}>
             User
           </button>
-          <button type="button" onClick={() => setIsAdmin(true)} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: isAdmin ? '#ef4444' : 'transparent', color: isAdmin ? 'white' : '#64748b' }}>
+          <button type="button" onClick={() => setIsAdmin(true)} style={{
+            flex: 1, padding: '10px', border: 'none', borderRadius: '9px',
+            fontWeight: '700', fontSize: '13px', cursor: 'pointer',
+            transition: 'all 0.2s',
+            backgroundColor: isAdmin ? '#ef4444' : 'transparent',
+            color: isAdmin ? 'white' : '#475569',
+            boxShadow: isAdmin ? '0 0 16px rgba(239,68,68,0.4)' : 'none',
+          }}>
             Admin
           </button>
         </div>
 
         <form onSubmit={handleLogin}>
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ color: '#94a3b8', fontSize: '14px', display: 'block', marginBottom: '5px' }}>Email</label>
-            <input type="email" required placeholder="name@domain.com" style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #334155', backgroundColor: '#0f172a', color: 'white', boxSizing: 'border-box' }} onChange={(e) => setCredentials({ ...credentials, email: e.target.value })} />
+          {/* Email */}
+          <div style={{ marginBottom: '18px' }}>
+            <label style={labelStyle}>Email</label>
+            <input
+              type="email" required
+              placeholder="name@domain.com"
+              style={inputStyle}
+              onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
+              onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.08)')}
+              onChange={e => setCredentials({ ...credentials, email: e.target.value })}
+            />
           </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ color: '#94a3b8', fontSize: '14px', display: 'block', marginBottom: '5px' }}>Password</label>
-            
-            {/* Wrapper div relative-positioned to container elements layout perfectly inside the frame */}
-            <div style={{ position: 'relative', width: '100%' }}>
-              <input 
-                type={showPassword ? 'text' : 'password'} 
-                required 
-                placeholder="••••••••" 
-                style={{ 
-                  width: '100%', 
-                  padding: '12px', 
-                  paddingRight: '45px', // Extra right padding ensures text doesn't slide under icon
-                  borderRadius: '6px', 
-                  border: '1px solid #334155', 
-                  backgroundColor: '#0f172a', 
-                  color: 'white', 
-                  boxSizing: 'border-box' 
-                }} 
-                onChange={(e) => setCredentials({ ...credentials, password: e.target.value })} 
+          {/* Password */}
+          <div style={{ marginBottom: '18px' }}>
+            <label style={labelStyle}>Password</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                placeholder="••••••••"
+                style={{ ...inputStyle, paddingRight: '48px' }}
+                onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
+                onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.08)')}
+                onChange={e => setCredentials({ ...credentials, password: e.target.value })}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
+                  position: 'absolute', right: '14px', top: '50%',
                   transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: '#64748b',
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: 0
+                  background: 'none', border: 'none',
+                  color: '#475569', cursor: 'pointer',
+                  padding: 0, fontSize: '16px', lineHeight: 1,
                 }}
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword ? '🙈' : '👁️'}
               </button>
             </div>
           </div>
 
-          {/* Remember me checkbox */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '25px' }}>
-            <input
-              type="checkbox"
-              id="rememberMe"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              style={{ cursor: 'pointer', width: '16px', height: '16px' }}
-            />
-            <label htmlFor="rememberMe" style={{ color: '#94a3b8', fontSize: '14px', cursor: 'pointer' }}>
+          {/* Remember me */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '28px' }}>
+            <div
+              onClick={() => setRememberMe(!rememberMe)}
+              style={{
+                width: '18px', height: '18px', borderRadius: '5px',
+                border: `2px solid ${rememberMe ? '#3b82f6' : 'rgba(255,255,255,0.15)'}`,
+                backgroundColor: rememberMe ? '#3b82f6' : 'transparent',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.2s', flexShrink: 0,
+              }}
+            >
+              {rememberMe && <span style={{ color: 'white', fontSize: '11px', fontWeight: 'bold' }}>✓</span>}
+            </div>
+            <span
+              onClick={() => setRememberMe(!rememberMe)}
+              style={{ color: '#64748b', fontSize: '13px', cursor: 'pointer', userSelect: 'none' }}
+            >
               Remember me on this device
-            </label>
+            </span>
           </div>
 
-          <button type="submit" disabled={modalOpen} style={{ width: '100%', padding: '12px', borderRadius: '6px', border: 'none', backgroundColor: isAdmin ? '#ef4444' : '#3b82f6', color: 'white', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '20px' }}>
-            <LogIn size={18} /> Log In
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={modalOpen}
+            style={{
+              width: '100%', padding: '14px',
+              borderRadius: '12px', border: 'none',
+              background: isAdmin
+                ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                : 'linear-gradient(135deg, #3b82f6, #06b6d4)',
+              color: 'white', fontWeight: '700', fontSize: '15px',
+              cursor: modalOpen ? 'not-allowed' : 'pointer',
+              boxShadow: isAdmin
+                ? '0 0 24px rgba(239,68,68,0.3)'
+                : '0 0 24px rgba(59,130,246,0.3)',
+              transition: 'box-shadow 0.2s, transform 0.2s',
+              marginBottom: '20px',
+            }}
+            onMouseOver={e => {
+              if (!modalOpen) {
+                (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.02)';
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = isAdmin
+                  ? '0 0 40px rgba(239,68,68,0.5)'
+                  : '0 0 40px rgba(59,130,246,0.5)';
+              }
+            }}
+            onMouseOut={e => {
+              (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
+              (e.currentTarget as HTMLButtonElement).style.boxShadow = isAdmin
+                ? '0 0 24px rgba(239,68,68,0.3)'
+                : '0 0 24px rgba(59,130,246,0.3)';
+            }}
+          >
+            {isAdmin ? '🔴 Admin Login' : '🔵 Secure Login'}
           </button>
 
-          <p style={{ textAlign: 'center', color: '#64748b', fontSize: '13px', margin: 0 }}>
+          {/* Divider */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px',
+          }}>
+            <div style={{ flex: 1, height: '1px', backgroundColor: 'rgba(255,255,255,0.06)' }} />
+            <span style={{ color: '#334155', fontSize: '12px' }}>or</span>
+            <div style={{ flex: 1, height: '1px', backgroundColor: 'rgba(255,255,255,0.06)' }} />
+          </div>
+
+          <p style={{ textAlign: 'center', color: '#475569', fontSize: '13px', margin: 0 }}>
             Don't have an account?{' '}
-            <span onClick={() => !modalOpen && navigate('/register')} style={{ color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline' }}>
+            <span
+              onClick={() => !modalOpen && navigate('/register')}
+              style={{
+                color: '#3b82f6', cursor: 'pointer',
+                fontWeight: '600', textDecoration: 'none',
+                borderBottom: '1px solid rgba(59,130,246,0.4)',
+                paddingBottom: '1px',
+              }}
+            >
               Register Here
             </span>
           </p>
         </form>
       </div>
+
+      <style>{`
+        input::placeholder { color: #334155; }
+        input:focus { outline: none; }
+      `}</style>
     </div>
   );
 };
