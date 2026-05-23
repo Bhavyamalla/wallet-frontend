@@ -27,7 +27,6 @@ const Dashboard = () => {
 
   const [balance, setBalance] = useState<number | null>(null);
   const [balanceRequested, setBalanceRequested] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [historyRecords, setHistoryRecords] = useState<Transaction[]>([]);
 
@@ -78,7 +77,6 @@ const Dashboard = () => {
         email: userEmail,
       });
 
-      setOtpSent(true);
       setBalanceRequested(true);
 
       setModalConfig({
@@ -99,9 +97,29 @@ const Dashboard = () => {
     }
   };
 
-  const checkBalanceVerification = async (
-    e: React.FormEvent
-  ) => {
+  const triggerTransferToken = async () => {
+    try {
+      await api.post('/api/auth/generate-otp', {
+        email: userEmail,
+      });
+
+      setModalConfig({
+        title: 'OTP Dispatched',
+        message: 'Transaction clearance security key sent to your email account.',
+        isError: false,
+      });
+      setModalOpen(true);
+    } catch (error: any) {
+      setModalConfig({
+        title: 'OTP Generation Failed',
+        message: error.response?.data || 'Failed to dispatch transactional security key.',
+        isError: true,
+      });
+      setModalOpen(true);
+    }
+  };
+
+  const checkBalanceVerification = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
@@ -114,7 +132,6 @@ const Dashboard = () => {
       );
 
       setBalance(response.data.balance);
-      setOtpSent(false);
       setBalanceRequested(false);
     } catch (error: any) {
       setModalConfig({
@@ -127,16 +144,13 @@ const Dashboard = () => {
     }
   };
 
-  const handleAssetTransfer = async (
-    e: React.FormEvent
-  ) => {
+  const handleAssetTransfer = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
       const response = await api.post('/api/auth/transfer', {
         senderEmail: userEmail,
-        receiverAccountNumber:
-          transferData.receiverAccountNumber,
+        receiverAccountNumber: transferData.receiverAccountNumber,
         amount: parseFloat(transferData.amount),
         otp: transferData.otp,
       });
@@ -392,11 +406,7 @@ const Dashboard = () => {
 
                 <button
                   type="button"
-                  onClick={() =>
-                    api.post('/api/auth/generate-otp', {
-                      email: userEmail,
-                    })
-                  }
+                  onClick={triggerTransferToken}
                   className="bg-slate-700 hover:bg-slate-600 transition-all px-5 rounded-2xl"
                 >
                   Send OTP
