@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api/axios';
 import AlertModal from '../components/AlertModal';
@@ -13,26 +13,56 @@ const BankCredentials = () => {
 
   const userEmail = location.state?.email || '';
 
+  // If someone navigates here directly without going through Register, send them back
+  useEffect(() => {
+    if (!userEmail) {
+      navigate('/register');
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Basic IFSC format check — must be 11 characters
+    if (bankData.ifscCode.length !== 11) {
+      setModalConfig({
+        title: 'Invalid IFSC',
+        message: 'IFSC code must be exactly 11 characters. Example: SBIN0001234',
+        isError: true,
+      });
+      setModalOpen(true);
+      return;
+    }
+
+    // Basic account number check — must be at least 9 digits
+    if (bankData.accountNumber.length < 9) {
+      setModalConfig({
+        title: 'Invalid Account Number',
+        message: 'Account number must be at least 9 digits.',
+        isError: true,
+      });
+      setModalOpen(true);
+      return;
+    }
+
     try {
       const response = await api.post('/api/auth/link-bank', {
         email: userEmail,
         bankName: bankData.bankName,
         accountNumber: bankData.accountNumber,
-        ifscCode: bankData.ifscCode,
+        ifscCode: bankData.ifscCode.toUpperCase(),
         accountHolderName: 'Standard Account Node',
       });
       setModalConfig({
         title: 'Bank Account Linked!',
-        message: response.data.message || 'Bank Account Connected Successfully! Click dismiss to view your dashboard.',
+        message: response.data.message || 'Bank linked successfully! Click dismiss to go to your dashboard.',
         isError: false,
       });
       setModalOpen(true);
     } catch (error: any) {
       setModalConfig({
-        title: 'Connection Failed',
-        message: error.response?.data?.error || error.response?.data || 'Failed to verify bank details. Try again.',
+        title: 'Link Failed',
+        message: error.response?.data?.error || error.response?.data || 'Failed to link bank. Try again.',
         isError: true,
       });
       setModalOpen(true);
@@ -80,6 +110,7 @@ const BankCredentials = () => {
       overflow: 'hidden',
     }}>
 
+      {/* Background grid */}
       <div style={{
         position: 'fixed', inset: 0,
         backgroundImage: `
@@ -88,6 +119,8 @@ const BankCredentials = () => {
         `,
         backgroundSize: '60px 60px', pointerEvents: 'none',
       }} />
+
+      {/* Ambient glow */}
       <div style={{
         position: 'fixed', top: '-20%', left: '-20%',
         width: '600px', height: '600px',
@@ -116,6 +149,7 @@ const BankCredentials = () => {
         transition: 'opacity 0.2s ease',
       }}>
 
+        {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{
             width: '56px', height: '56px', borderRadius: '16px',
@@ -136,6 +170,7 @@ const BankCredentials = () => {
           </p>
         </div>
 
+        {/* Email badge */}
         {userEmail && (
           <div style={{
             backgroundColor: 'rgba(59,130,246,0.08)',
@@ -146,43 +181,76 @@ const BankCredentials = () => {
             display: 'flex', alignItems: 'center', gap: '8px',
           }}>
             <span style={{ color: '#60a5fa', fontSize: '14px' }}>📧</span>
-            <span style={{ color: '#60a5fa', fontSize: '13px' }}>Linking for: <strong>{userEmail}</strong></span>
+            <span style={{ color: '#60a5fa', fontSize: '13px' }}>
+              Linking for: <strong>{userEmail}</strong>
+            </span>
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
+
+          {/* Bank Name */}
           <div style={{ marginBottom: '18px' }}>
             <label style={labelStyle}>Bank Name</label>
-            <input type="text" placeholder="e.g. HDFC, SBI, ICICI" required style={inputStyle}
+            <input
+              type="text"
+              id="bankName"
+              name="bankName"
+              placeholder="e.g. HDFC, SBI, ICICI"
+              required
+              style={inputStyle}
               onFocus={e => (e.target.style.borderColor = 'rgba(16,185,129,0.5)')}
               onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.08)')}
-              onChange={e => setBankData({ ...bankData, bankName: e.target.value })} />
+              onChange={e => setBankData({ ...bankData, bankName: e.target.value })}
+            />
           </div>
 
+          {/* Account Number */}
           <div style={{ marginBottom: '18px' }}>
             <label style={labelStyle}>Account Number</label>
-            <input type="text" placeholder="Enter bank account digits" required style={inputStyle}
+            <input
+              type="text"
+              id="accountNumber"
+              name="accountNumber"
+              placeholder="Enter your bank account number"
+              required
+              inputMode="numeric"
+              style={inputStyle}
               onFocus={e => (e.target.style.borderColor = 'rgba(16,185,129,0.5)')}
               onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.08)')}
-              onChange={e => setBankData({ ...bankData, accountNumber: e.target.value })} />
+              onChange={e => setBankData({ ...bankData, accountNumber: e.target.value })}
+            />
           </div>
 
+          {/* IFSC Code */}
           <div style={{ marginBottom: '28px' }}>
             <label style={labelStyle}>IFSC Code</label>
-            <input type="text" placeholder="e.g. SBIN0001234" maxLength={11} required style={inputStyle}
+            <input
+              type="text"
+              id="ifscCode"
+              name="ifscCode"
+              placeholder="e.g. SBIN0001234"
+              maxLength={11}
+              required
+              style={{ ...inputStyle, textTransform: 'uppercase' }}
               onFocus={e => (e.target.style.borderColor = 'rgba(16,185,129,0.5)')}
               onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.08)')}
-              onChange={e => setBankData({ ...bankData, ifscCode: e.target.value })} />
+              onChange={e => setBankData({ ...bankData, ifscCode: e.target.value.toUpperCase() })}
+            />
           </div>
 
-          <button type="submit" disabled={modalOpen} style={{
-            width: '100%', padding: '14px', borderRadius: '12px', border: 'none',
-            background: 'linear-gradient(135deg, #10b981, #06b6d4)',
-            color: 'white', fontWeight: '700', fontSize: '15px',
-            cursor: modalOpen ? 'not-allowed' : 'pointer',
-            boxShadow: '0 0 24px rgba(16,185,129,0.3)',
-            transition: 'box-shadow 0.2s, transform 0.2s',
-          }}
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={modalOpen}
+            style={{
+              width: '100%', padding: '14px', borderRadius: '12px', border: 'none',
+              background: 'linear-gradient(135deg, #10b981, #06b6d4)',
+              color: 'white', fontWeight: '700', fontSize: '15px',
+              cursor: modalOpen ? 'not-allowed' : 'pointer',
+              boxShadow: '0 0 24px rgba(16,185,129,0.3)',
+              transition: 'box-shadow 0.2s, transform 0.2s',
+            }}
             onMouseOver={e => {
               if (!modalOpen) {
                 (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.02)';
@@ -196,6 +264,7 @@ const BankCredentials = () => {
           >
             Verify & Link Account
           </button>
+
         </form>
       </div>
 

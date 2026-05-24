@@ -158,35 +158,61 @@ const Register = () => {
 
         <form onSubmit={handleRegister}>
           <div style={{ marginBottom: '18px' }}>
-            <label style={labelStyle}>Full Name</label>
-            <input type="text" required placeholder="Your full name" style={inputStyle}
+            <label htmlFor="name" style={labelStyle}>Full Name</label>
+            <input
+              id="name"
+              name="name"
+              type="text"
+              required
+              placeholder="Your full name"
+              style={inputStyle}
               onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
               onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.08)')}
-              onChange={e => setFormData({ ...formData, name: e.target.value })} />
+              onChange={e => setFormData({ ...formData, name: e.target.value })}
+            />
           </div>
 
           <div style={{ marginBottom: '18px' }}>
-            <label style={labelStyle}>Email</label>
-            <input type="email" required placeholder="name@gmail.com" style={inputStyle}
+            <label htmlFor="email" style={labelStyle}>Email</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              placeholder="name@gmail.com"
+              style={inputStyle}
               onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
               onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.08)')}
-              onChange={e => setFormData({ ...formData, email: e.target.value })} />
+              onChange={e => setFormData({ ...formData, email: e.target.value })}
+            />
           </div>
 
           <div style={{ marginBottom: '18px' }}>
-            <label style={labelStyle}>Phone Number</label>
-            <input type="text" required placeholder="10 digit mobile number" maxLength={10} style={inputStyle}
+            <label htmlFor="phoneNumber" style={labelStyle}>Phone Number</label>
+            <input
+              id="phoneNumber"
+              name="phoneNumber"
+              type="text"
+              required
+              placeholder="10 digit mobile number"
+              maxLength={10}
+              inputMode="numeric"
+              style={inputStyle}
               onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
               onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.08)')}
-              onChange={e => setFormData({ ...formData, phoneNumber: e.target.value })} />
+              onChange={e => setFormData({ ...formData, phoneNumber: e.target.value })}
+            />
           </div>
 
           <div style={{ marginBottom: '28px' }}>
-            <label style={labelStyle}>Password</label>
+            <label htmlFor="password" style={labelStyle}>Password</label>
             <div style={{ position: 'relative' }}>
               <input
+                id="password"
+                name="password"
                 type={showPassword ? 'text' : 'password'}
-                required placeholder="Min 6 characters"
+                required
+                placeholder="Min 6 characters"
                 style={{ ...inputStyle, paddingRight: '48px' }}
                 onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
                 onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.08)')}

@@ -1,8 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  // UPDATE THIS LINE WITH YOUR TRUE RENDER URL
-  baseURL: 'https://biosheild-api.onrender.com', 
+  baseURL: 'https://biosheild-api.onrender.com', // ← paste your exact Render URL here
   headers: {
     'Content-Type': 'application/json',
   },

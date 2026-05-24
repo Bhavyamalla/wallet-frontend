@@ -92,7 +92,6 @@ const Login = () => {
       overflow: 'hidden',
     }}>
 
-      {/* Background grid */}
       <div style={{
         position: 'fixed', inset: 0,
         backgroundImage: `
@@ -102,8 +101,6 @@ const Login = () => {
         backgroundSize: '60px 60px',
         pointerEvents: 'none',
       }} />
-
-      {/* Ambient glow */}
       <div style={{
         position: 'fixed', top: '-20%', left: '-20%',
         width: '600px', height: '600px',
@@ -138,7 +135,6 @@ const Login = () => {
         transition: 'opacity 0.2s ease',
       }}>
 
-        {/* Logo + Title */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{
             width: '56px', height: '56px', borderRadius: '16px',
@@ -169,7 +165,6 @@ const Login = () => {
           </p>
         </div>
 
-        {/* User / Admin Toggle */}
         <div style={{
           display: 'flex',
           backgroundColor: 'rgba(255,255,255,0.04)',
@@ -200,11 +195,13 @@ const Login = () => {
         </div>
 
         <form onSubmit={handleLogin}>
-          {/* Email */}
           <div style={{ marginBottom: '18px' }}>
-            <label style={labelStyle}>Email</label>
+            <label htmlFor="email" style={labelStyle}>Email</label>
             <input
-              type="email" required
+              id="email"
+              name="email"
+              type="email"
+              required
               placeholder="name@domain.com"
               style={inputStyle}
               onFocus={e => (e.target.style.borderColor = 'rgba(59,130,246,0.5)')}
@@ -213,11 +210,12 @@ const Login = () => {
             />
           </div>
 
-          {/* Password */}
           <div style={{ marginBottom: '18px' }}>
-            <label style={labelStyle}>Password</label>
+            <label htmlFor="password" style={labelStyle}>Password</label>
             <div style={{ position: 'relative' }}>
               <input
+                id="password"
+                name="password"
                 type={showPassword ? 'text' : 'password'}
                 required
                 placeholder="••••••••"
@@ -242,7 +240,6 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Remember me */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '28px' }}>
             <div
               onClick={() => setRememberMe(!rememberMe)}
@@ -264,7 +261,6 @@ const Login = () => {
             </span>
           </div>
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={modalOpen}
@@ -300,10 +296,7 @@ const Login = () => {
             {isAdmin ? '🔴 Admin Login' : '🔵 Secure Login'}
           </button>
 
-          {/* Divider */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px',
-          }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
             <div style={{ flex: 1, height: '1px', backgroundColor: 'rgba(255,255,255,0.06)' }} />
             <span style={{ color: '#334155', fontSize: '12px' }}>or</span>
             <div style={{ flex: 1, height: '1px', backgroundColor: 'rgba(255,255,255,0.06)' }} />
